@@ -1,0 +1,62 @@
+- name: repositories key
+  apt_key: >
+    url=http://docs.mongodb.org/10gen-gpg-key.asc
+    state=present
+
+- name: repositories
+  apt_repository: >
+    repo="{{ item }}"
+    state=present
+    update_cache=yes
+  with_items:
+    - deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen
+
+- name: packages
+  apt: >
+    name={{ item }}
+    state=present
+  with_items:
+    - mongodb-org
+
+- name: service
+  service: >
+    name=mongod
+    state=started
+    enabled=yes
+
+
+#install python mongo driver
+- pip: name=pymongo state=latest
+
+
+# install php mongo driver
+- name: install php mongo driver
+  shell: printf "\n" | pecl install mongo
+
+# disable bind_address to enable remote connections
+- name: change bind_address in mongodb.conf
+  lineinfile: dest="{{ MONGO_CONF }}" regexp='bind_ip\s*=\s*127\.0\.0\.1\s*' line='bind_ip   = 0.0.0.0' state=present backrefs=yes
+
+- service: name=mongodb state=restarted
+
+
+# php.ini mongo configuration entry
+- name: add mongo extension to php.ini configuration
+  lineinfile: dest="{{ item }}" line="extension=mongo.so" state=present
+  with_items:
+    - /etc/php5/apache2/php.ini
+    - /etc/php5/cli/php.ini
+
+- service: name=apache2 state=restarted
+
+
+
+# make sure json directory exists
+- name: Make sure that json non200 directory exists
+  action: file path="{{ J_DIR_NON200 }}" state=directory
+
+- name: Make sure that json nonindex directory exists
+  action: file path="{{ J_DIR_NONINDEX }}" state=directory
+
+- name: Make sure that json data directory exists
+  action: file path="{{ J_DIR_DATA }}" state=directory

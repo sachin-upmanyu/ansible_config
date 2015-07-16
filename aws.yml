@@ -1,0 +1,8 @@
+# configure worker servers
+- hosts: aws
+  sudo: yes
+  # sudo_user: ubuntu
+  roles:
+    - aws
+    # - web-worker
+    # - mysql-db

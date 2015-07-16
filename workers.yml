@@ -1,0 +1,6 @@
+# configure worker servers
+- hosts: workers
+  roles:
+    - worker
+    # - web-worker
+    # - mysql-db

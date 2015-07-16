@@ -1,0 +1,62 @@
+#install pip packages
+- pip: name=redis state=present
+
+
+# MySQL
+
+- name: install MySQL
+  apt: name="{{ item }}" state=latest
+  with_items:
+    - mysql-server
+    - mysql-client
+    - python-mysqldb
+    - php5-mysql
+
+- name: add mysql user
+  mysql_user: name="{{ MY_USER }}" host="{{ item }}" password="{{ MY_PASS}}" priv=*.*:ALL,GRANT login_user="{{ MY_LOGIN_USER }}" login_password="{{ MY_LOGIN_PASS }}"
+  with_items:
+    - '%'
+    - localhost
+
+- name: make sure mysql is running
+  action: service name=mysql state=started enabled=true
+
+
+
+# remove database if exist, insert new data
+- name: delete database first
+  mysql_db: name="{{ item }}" state=absent login_user="{{ MY_USER }}" login_password="{{ MY_PASS}}"
+  with_items:
+    - "{{ DB_NAME }}"
+
+# create mysql DBs
+- name: create mysql databases
+  mysql_db: name="{{ item }}" state=present login_user="{{ MY_USER }}" login_password="{{ MY_PASS}}"
+  with_items:
+    - "{{ DB_NAME }}"
+
+
+
+# Copy database dump file to remote host and restore it to database
+- copy: src="{{ DB_FROM }}" dest="{{ DB_TO }}"
+- mysql_db: name="{{ DB_NAME }}" state=import target="{{ DB_TO }}"/"{{ DB_SQL }}" login_user="{{ MY_USER }}" login_password="{{ MY_PASS}}"
+
+
+
+# download python mysql driver
+- name: Download python mysql driver
+  get_url:
+    url="{{ PY_MY_DRIVER_FROM }}"
+    dest="{{ PY_MY_DRIVER_TO }}"
+  always_run: yes
+
+# install python mysql driver
+- name: Install python mysql driver
+  apt: deb="{{ PY_MY_DRIVER_TO }}" state=present
+
+# make sure code directory exists
+- name: Make sure that code directory exists
+  action: file path="{{ CODE_DIR_TO }}" state=directory
+
+# transfer master code
+- synchronize: src="{{ CODE_DIR_FROM }}" dest="{{ CODE_DIR_TO }}"
