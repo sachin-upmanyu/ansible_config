@@ -1,0 +1,83 @@
+
+# Run the equivalent of "apt-get update" as a separate step
+- apt: update_cache=yes
+
+# Update all packages to the latest version
+- apt: upgrade=dist
+
+
+# install miscelleanous packages
+
+- name: install prequisits or misc. packages
+  apt: name="{{ item }}"
+  with_items:
+    - libxml2-dev
+    - libxslt1-dev
+    - htop
+
+
+# python and packages
+
+- name: install python and packages
+  apt: name="{{ item }}" state=latest
+  with_items:
+    - python-dev
+    - python-lxml
+    - python-setuptools
+
+
+
+# install pip by get-pip.py method
+- name: check to see if pip is already installed
+  command: "pip --version"
+  always_run: yes
+  ignore_errors: true
+  changed_when: false
+  register: pip_is_installed
+  changed_when: false
+
+- name: download pip
+  get_url: url=https://bootstrap.pypa.io/get-pip.py dest=/tmp
+  when: pip_is_installed.rc != 0
+
+- name: install pip
+  command: "python /tmp/get-pip.py"
+  sudo: yes
+  when: pip_is_installed.rc != 0
+
+- name: delete get-pip.py
+  file: state=absent path=/tmp/get-pip.py
+  when: pip_is_installed.rc != 0
+
+
+
+
+# Apache2
+
+- name: ensure apache is installed
+  apt: name=apache2 state=present
+
+- name: make sure apache is running
+  action: service name=apache2 state=started enabled=true
+
+
+# PHP5
+
+- name: install php5 and modules
+  apt: name="{{ item }}" state=latest
+  with_items:
+    - php5
+    - php-pear
+    - php5-dev
+    - php5-enchant
+    - hunspell
+
+
+# ensure dictionary directory exists
+- name: Assures /usr/share/myspell/dicts dir exists
+  file: path=/usr/share/myspell/dicts state=directory
+
+# transfer enchant dictionaries
+- copy: src=/home/sachin/Documents/Server_Setups/ansible_config/files/en_CUSTOM.dic dest=/usr/share/myspell/dicts/
+- copy: src=/home/sachin/Documents/Server_Setups/ansible_config/files/en_CUSTOM.aff dest=/usr/share/myspell/dicts/
+

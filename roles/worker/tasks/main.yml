@@ -1,0 +1,62 @@
+#install pip packages
+- pip: name=redis state=present
+
+
+# MySQL
+
+- name: install MySQL
+  apt: name="{{ item }}" state=latest
+  with_items:
+    - mysql-server
+    - mysql-client
+    - python-mysqldb
+    - php5-mysql
+
+- name: add mysql user
+  mysql_user: name=auditor host="{{ item }}" password=yb9738z priv=*.*:ALL,GRANT login_user=root login_password=
+  with_items:
+    - '%'
+    - localhost
+
+- name: make sure mysql is running
+  action: service name=mysql state=started enabled=true
+
+
+
+# remove database if exist, insert new data
+- name: delete database first
+  mysql_db: name="{{ item }}" state=absent login_user=auditor login_password=yb9738z
+  with_items:
+    - auditor_temp
+
+# create mysql DBs
+- name: create mysql databases
+  mysql_db: name="{{ item }}" state=present login_user=auditor login_password=yb9738z
+  with_items:
+    - auditor_temp
+
+
+
+# Copy database dump file to remote host and restore it to database
+- copy: src=/home/sachin/Documents/Server_Setups/ansible_config/files/auditor_temp.sql dest=/tmp
+- mysql_db: name=auditor_temp state=import target=/tmp/auditor_temp.sql login_user=auditor login_password=yb9738z
+
+
+
+# download python mysql driver
+- name: Download python mysql driver
+  get_url:
+    url="http://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python_2.0.4-1ubuntu14.04_all.deb"
+    dest="/tmp/python-mysql.deb"
+  always_run: yes
+
+# install python mysql driver
+- name: Install python mysql driver
+  apt: deb="/tmp/python-mysql.deb" state=present
+
+# make sure code directory exists
+- name: Make sure that code directory exists
+  action: file path=/var/www/html/Distributed/Worker state=directory
+
+# transfer master code
+- synchronize: src=/var/www/html/Distributed/Worker/ dest=/var/www/html/Distributed/Worker/

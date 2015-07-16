@@ -1,0 +1,5 @@
+# configure distributor server
+- hosts: distributor
+  roles:
+    - distributor
+    # - mysql-db

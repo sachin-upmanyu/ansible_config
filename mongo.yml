@@ -1,0 +1,6 @@
+# configure mongo server
+- hosts: mongo
+  roles:
+    - mongo
+    # - web-mongo
+    # - mysql-db
