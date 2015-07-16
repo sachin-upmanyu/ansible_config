@@ -1,7 +1,0 @@
-
-# configure master servers
-- hosts: masters
-  roles:
-    - master
-    # - web-master
-    # - mysql-db
